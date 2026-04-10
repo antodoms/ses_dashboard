@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit:
+    name: Unit & Controller Specs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+
+      - name: Run unit and controller specs
+        run: bundle exec rspec --exclude-pattern "spec/system/**/*_spec.rb"
+        env:
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
+
+  system:
+    name: System Specs
+    runs-on: ubuntu-latest
+
+    services:
+      localstack:
+        image: localstack/localstack:3
+        ports:
+          - "4566:4566"
+        env:
+          SERVICES: ses,sns
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
+
+      chrome:
+        image: selenium/standalone-chromium:latest
+        ports:
+          - "4444:4444"
+        options: --shm-size=2g
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+
+      - name: Run system specs
+        run: bundle exec rspec spec/system
+        env:
+          AWS_ENDPOINT_URL: http://localhost:4566
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_REGION: us-east-1
+          SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub

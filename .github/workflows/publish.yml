@@ -1,0 +1,32 @@
+name: Publish to RubyGems
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    name: Publish to RubyGems
+    runs-on: ubuntu-latest
+    environment: rubygems
+
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+
+      - name: Configure trusted publishing credentials
+        uses: rubygems/configure-rubygems-credentials@main
+
+      - name: Build gem
+        run: gem build ses_dashboard.gemspec
+
+      - name: Push to RubyGems
+        run: gem push ses_dashboard-*.gem

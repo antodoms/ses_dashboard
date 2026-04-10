@@ -51,10 +51,11 @@ module SesDashboard
       from = effective_from
       to   = effective_to
 
+      expr = Arel.sql(date_group_expr)
       raw = base_scope
               .where(sent_at: from..to)
-              .group(date_group_expr)
-              .order(date_group_expr)
+              .group(expr)
+              .order(expr)
               .count
 
       all_days = date_range_days(from, to)

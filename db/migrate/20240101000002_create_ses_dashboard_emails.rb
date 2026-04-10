@@ -1,4 +1,4 @@
-class CreateSesDashboardEmails < ActiveRecord::Migration[7.0]
+class CreateSesDashboardEmails < ActiveRecord::Migration[8.0]
   def change
     create_table :ses_dashboard_emails do |t|
       t.references :project,    null: false, foreign_key: { to_table: :ses_dashboard_projects }

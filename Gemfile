@@ -7,7 +7,8 @@ group :development, :test do
   gem "rspec-rails"
   gem "rack-test"
   gem "rails"
-  gem "sqlite3", "~> 1.4"
+  gem "sqlite3", ">= 2.1"
   gem "factory_bot_rails"
   gem "capybara"
+  gem "rails-controller-testing"
 end

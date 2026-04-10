@@ -1,4 +1,4 @@
-class CreateSesDashboardProjects < ActiveRecord::Migration[7.0]
+class CreateSesDashboardProjects < ActiveRecord::Migration[8.0]
   def change
     create_table :ses_dashboard_projects do |t|
       t.string :name,        null: false

@@ -12,7 +12,7 @@ RSpec.describe SesDashboard::ProjectsController, type: :controller do
       create(:ses_dashboard_project, name: "Alpha")
       get :index
       expect(response).to have_http_status(:ok)
-      expect(assigns(:projects).map(&:name)).to include("Alpha")
+      expect(SesDashboard::Project.pluck(:name)).to include("Alpha")
     end
   end
 

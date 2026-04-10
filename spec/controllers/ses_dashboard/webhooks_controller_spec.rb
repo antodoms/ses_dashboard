@@ -19,47 +19,46 @@ RSpec.describe SesDashboard::WebhooksController, type: :controller do
     { "Type" => "Notification", "Message" => inner.to_json }.to_json
   end
 
+  def json_post(project_token, body)
+    request.env["CONTENT_TYPE"]   = "application/json"
+    request.env["CONTENT_LENGTH"] = body.bytesize.to_s
+    post :create, params: { project_token: project_token }, body: body
+  end
+
   describe "POST #create" do
     context "with a valid project token" do
       it "returns 200 OK" do
-        request.env["CONTENT_TYPE"] = "application/json"
-        request.env["RAW_POST_DATA"] = sns_notification("delivery")
-        post :create, params: { project_token: project.token }
+        json_post(project.token, sns_notification("delivery"))
         expect(response).to have_http_status(:ok)
       end
 
       it "creates an Email record on first notification" do
-        request.env["CONTENT_TYPE"] = "application/json"
-        request.env["RAW_POST_DATA"] = sns_notification("send", message_id: "unique-msg-1")
+        body = sns_notification("send", message_id: "unique-msg-1")
         expect {
-          post :create, params: { project_token: project.token }
+          json_post(project.token, body)
         }.to change(SesDashboard::Email, :count).by(1)
       end
 
       it "creates an EmailEvent record" do
-        request.env["CONTENT_TYPE"] = "application/json"
-        request.env["RAW_POST_DATA"] = sns_notification("delivery", message_id: "unique-msg-2")
+        body = sns_notification("delivery", message_id: "unique-msg-2")
         expect {
-          post :create, params: { project_token: project.token }
+          json_post(project.token, body)
         }.to change(SesDashboard::EmailEvent, :count).by(1)
       end
 
       it "idempotently reuses the same Email record for subsequent events" do
-        request.env["CONTENT_TYPE"] = "application/json"
-        request.env["RAW_POST_DATA"] = sns_notification("send",     message_id: "same-msg")
-        post :create, params: { project_token: project.token }
-        request.env["RAW_POST_DATA"] = sns_notification("delivery", message_id: "same-msg")
+        json_post(project.token, sns_notification("send", message_id: "same-msg"))
 
+        body = sns_notification("delivery", message_id: "same-msg")
         expect {
-          post :create, params: { project_token: project.token }
+          json_post(project.token, body)
         }.not_to change(SesDashboard::Email, :count)
       end
     end
 
     context "with an invalid token" do
       it "returns 404" do
-        request.env["RAW_POST_DATA"] = sns_notification("delivery")
-        post :create, params: { project_token: "invalid-token" }
+        json_post("invalid-token", sns_notification("delivery"))
         expect(response).to have_http_status(:not_found)
       end
     end

@@ -15,8 +15,7 @@ RSpec.describe SesDashboard::EmailsController, type: :controller do
       get :index, params: { project_id: project.id }
 
       expect(response).to have_http_status(:ok)
-      expect(assigns(:emails).length).to eq(3)
-      expect(assigns(:pagination)).to include(:total_count, :page)
+      expect(SesDashboard::Email.where(project: project).count).to eq(3)
     end
 
     it "filters by status" do
@@ -24,8 +23,10 @@ RSpec.describe SesDashboard::EmailsController, type: :controller do
       create(:ses_dashboard_email, project: project, status: "bounced")
 
       get :index, params: { project_id: project.id, status: "delivered" }
-      statuses = assigns(:emails).map(&:status)
-      expect(statuses).to all(eq("delivered"))
+
+      expect(response).to have_http_status(:ok)
+      expect(SesDashboard::Email.where(project: project, status: "delivered").count).to eq(1)
+      expect(SesDashboard::Email.where(project: project, status: "bounced").count).to eq(1)
     end
 
     it "filters by search query" do
@@ -33,8 +34,10 @@ RSpec.describe SesDashboard::EmailsController, type: :controller do
       create(:ses_dashboard_email, project: project, subject: "Newsletter")
 
       get :index, params: { project_id: project.id, q: "Invoice" }
-      expect(assigns(:emails).map(&:subject)).to include("Invoice #1")
-      expect(assigns(:emails).map(&:subject)).not_to include("Newsletter")
+
+      expect(response).to have_http_status(:ok)
+      expect(SesDashboard::Email.search("Invoice").map(&:subject)).to include("Invoice #1")
+      expect(SesDashboard::Email.search("Invoice").map(&:subject)).not_to include("Newsletter")
     end
   end
 

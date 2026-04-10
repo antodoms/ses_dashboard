@@ -16,4 +16,5 @@ group :development, :test do
   gem "puma"
   gem "selenium-webdriver"
   gem "database_cleaner-active_record"
+  gem "simplecov"
 end

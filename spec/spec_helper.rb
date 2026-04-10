@@ -1,3 +1,10 @@
+require "simplecov"
+SimpleCov.start do
+  add_filter "/spec/"
+  add_filter "/lib/ses_dashboard/version.rb"
+  enable_coverage :branch
+end
+
 require "bundler/setup"
 require "rspec"
 require "aws-sdk-ses"

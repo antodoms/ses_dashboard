@@ -26,6 +26,13 @@ jobs:
           AWS_SECRET_ACCESS_KEY: test
           AWS_DEFAULT_REGION: us-east-1
 
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unit
+          files: coverage/.resultset.json
+
   system:
     name: System Specs
     runs-on: ubuntu-latest
@@ -64,3 +71,10 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
           AWS_REGION: us-east-1
           SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: system
+          files: coverage/.resultset.json

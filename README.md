@@ -1,4 +1,5 @@
 # SES Dashboard
+[![codecov](https://codecov.io/gh/antodoms/ses_dashboard/graph/badge.svg?token=0SSO12E12W)](https://codecov.io/gh/antodoms/ses_dashboard)
 
 A mountable Rails engine that provides a real-time dashboard for Amazon SES, tracking email delivery, bounces, complaints, opens, and clicks via SNS webhooks.
 

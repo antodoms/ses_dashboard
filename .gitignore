@@ -1,0 +1,12 @@
+.bundle/
+coverage/
+log/
+tmp/
+*.gem
+*.rbc
+*.sass-cache
+*.swp
+.DS_Store
+.rspec_status
+/vendor/bundle
+localstack

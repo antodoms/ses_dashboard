@@ -1,24 +1,28 @@
 ENV["RAILS_ENV"] ||= "test"
 
-# Set DATABASE_URL before loading the Rails environment so ActiveRecord never
-# tries to find config/database.yml relative to the working directory.
-ENV["DATABASE_URL"] = "sqlite3::memory:"
+# Use a file-based SQLite database so the Puma server thread (used by Capybara
+# system specs) shares the same data as the test thread.
+# In-memory SQLite gives each connection its own isolated database.
+require "fileutils"
+db_file = File.expand_path("tmp/test.db", __dir__)
+FileUtils.mkdir_p(File.dirname(db_file))
+File.delete(db_file) if File.exist?(db_file)
+ENV["DATABASE_URL"] = "sqlite3:#{db_file}"
 
 require File.expand_path("dummy/config/environment", __dir__)
 
 # Force all routes (including engine routes) to be drawn after initialization.
-# Without this, SesDashboard::Engine.routes is empty when controller specs run.
 Rails.application.reload_routes!
 
 require "rspec/rails"
 require "factory_bot_rails"
+require "database_cleaner/active_record"
 require_relative "support/aws_mocks"
+require_relative "support/capybara"
 
-# Establish the in-memory connection and run engine migrations once per suite.
-# We call each migration's #change directly rather than going through
-# MigrationContext — that API changed in Rails 8 and we don't need schema
-# version tracking in an in-memory test database.
-ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: ":memory:")
+# Build the schema directly from engine migrations — avoids MigrationContext
+# API differences across Rails versions and works with in-memory / file DBs.
+ActiveRecord::Base.establish_connection(adapter: "sqlite3", database: db_file)
 ActiveRecord::Schema.verbose = false
 
 load File.expand_path("../db/migrate/20240101000001_create_ses_dashboard_projects.rb", __dir__)
@@ -36,10 +40,37 @@ RSpec.configure do |config|
   config.include Rails.application.routes.url_helpers
   config.include SesDashboard::Engine.routes.url_helpers
 
-  config.use_transactional_fixtures = true
+  # DatabaseCleaner manages transaction wrapping — disable RSpec's built-in.
+  config.use_transactional_fixtures = false
 
-  config.before(:each) do
+  config.before(:suite) do
+    DatabaseCleaner.clean_with(:truncation)
+  end
+
+  # Use the remote Chrome driver for every system spec.
+  # We set current_driver directly rather than calling driven_by — driven_by
+  # goes through Rails' ActionDispatch::SystemTestCase machinery which may not
+  # boot the Capybara/Puma server for custom (non-built-in) drivers.
+  config.before(:each, type: :system) do
+    driven_by :remote_chrome
+  end
+
+  config.after(:each, type: :system) do
+    Capybara.reset_sessions!
+    Capybara.use_default_driver
+  end
+
+  config.before(:each) do |example|
     SesDashboard.reset_configuration!
+    # System specs need truncation: the Puma server runs in a separate thread
+    # with its own connection, so a transaction rollback won't clean its data.
+    # All other specs use a transaction that is rolled back after each example.
+    DatabaseCleaner.strategy = (example.metadata[:type] == :system) ? :truncation : :transaction
+    DatabaseCleaner.start
+  end
+
+  config.after(:each) do
+    DatabaseCleaner.clean
   end
 
   config.infer_spec_type_from_file_location!

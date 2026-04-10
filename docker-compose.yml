@@ -16,15 +16,17 @@ services:
     image: selenium/standalone-chromium:latest
     ports:
       - "4444:4444"   # Selenium WebDriver
-      - "7900:7900"   # noVNC (browser preview at http://localhost:7900, password: secret)
+      - "7900:7900"   # noVNC — open http://localhost:7900 (no password) to watch tests live
     shm_size: "2g"    # prevents Chrome tab crashes under load
     environment:
-      - SE_NODE_MAX_SESSIONS=3
+      - JAVA_OPTS=-Dwebdriver.chrome.whitelistedIps=
       - SE_VNC_NO_PASSWORD=1
 
-  app:
+  web:
     build: .
     command: bundle exec rspec
+    ports:
+      - "4001:4001"   # Puma server
     depends_on:
       - localstack
       - chrome
@@ -38,7 +40,6 @@ services:
       - AWS_DEFAULT_REGION=us-east-1
       - AWS_REGION=us-east-1
       - SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub
-      - CAPYBARA_SERVER_HOST=app   # Capybara binds to this hostname so Chrome can reach it
 
 volumes:
   bundle:

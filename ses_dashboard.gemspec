@@ -38,14 +38,17 @@ Gem::Specification.new do |spec|
   spec.add_dependency "csv"    # no longer a default gem in Ruby 3.4+
 
   # Development/test dependencies
-  spec.add_development_dependency "bundler",          ">= 2.0"
+  spec.add_development_dependency "bundler",                    ">= 2.0"
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"
-  spec.add_development_dependency "rspec-rails",      ">= 6.0"
+  spec.add_development_dependency "rspec-rails",               ">= 6.0"
   spec.add_development_dependency "rack-test"
-  spec.add_development_dependency "rails",            ">= 7.0"
-  spec.add_development_dependency "sqlite3",          ">= 2.1"
+  spec.add_development_dependency "rails",                     ">= 7.0"
+  spec.add_development_dependency "sqlite3",                   ">= 2.1"
   spec.add_development_dependency "factory_bot_rails"
   spec.add_development_dependency "capybara"
   spec.add_development_dependency "rails-controller-testing"
+  spec.add_development_dependency "puma"
+  spec.add_development_dependency "selenium-webdriver"
+  spec.add_development_dependency "database_cleaner-active_record"
 end

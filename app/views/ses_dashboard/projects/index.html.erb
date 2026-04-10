@@ -1,0 +1,42 @@
+<div class="page-header">
+  <h1 class="page-title">Projects</h1>
+  <%= link_to "New project", new_project_path, class: "btn btn-primary btn-sm" %>
+</div>
+
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Token</th>
+        <th>Emails</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @projects.each do |project| %>
+        <tr>
+          <td><%= link_to project.name, project_path(project) %></td>
+          <td>
+            <span class="token-display"><%= project.token[0..7] %>&hellip;</span>
+            <button class="btn btn-sm btn-outline" data-copy="<%= project.token %>">Copy token</button>
+          </td>
+          <td><%= number_with_delimiter(project.emails.count) %></td>
+          <td style="display:flex;gap:.4rem;">
+            <%= link_to "View",   project_path(project),      class: "btn btn-sm btn-outline" %>
+            <%= link_to "Edit",   edit_project_path(project), class: "btn btn-sm btn-outline" %>
+            <%= link_to "Delete", project_path(project),
+                  method: :delete,
+                  data: { confirm: "Delete project '#{project.name}' and all its emails?" },
+                  class: "btn btn-sm btn-danger" %>
+          </td>
+        </tr>
+      <% end %>
+      <% if @projects.empty? %>
+        <tr><td colspan="4" style="color:var(--color-text-muted);text-align:center;padding:2rem;">
+          No projects yet. <%= link_to "Create one", new_project_path %>.
+        </td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

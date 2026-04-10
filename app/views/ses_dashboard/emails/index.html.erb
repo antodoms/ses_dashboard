@@ -1,0 +1,72 @@
+<div class="page-header">
+  <h1 class="page-title">Activity — <%= @project.name %></h1>
+  <div style="display:flex;gap:.5rem;">
+    <%= link_to "Export CSV",  export_project_emails_path(@project, request.query_parameters.merge(format: :csv)),  class: "btn btn-outline btn-sm" %>
+    <%= link_to "Export JSON", export_project_emails_path(@project, request.query_parameters.merge(format: :json)), class: "btn btn-outline btn-sm" %>
+  </div>
+</div>
+
+<%= form_with url: project_emails_path(@project), method: :get, local: true do |f| %>
+  <div class="filter-bar">
+    <div class="form-group">
+      <label class="form-label">Search</label>
+      <input type="text" name="q" class="form-control" value="<%= params[:q] %>" placeholder="Subject, from, to&hellip;">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <select name="status" class="form-control">
+        <option value="">All</option>
+        <% SesDashboard::Email::STATUSES.each do |s| %>
+          <option value="<%= s %>" <%= "selected" if params[:status] == s %>><%= s.capitalize %></option>
+        <% end %>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">From date</label>
+      <input type="date" name="from_date" class="form-control" value="<%= params[:from_date] %>">
+    </div>
+    <div class="form-group">
+      <label class="form-label">To date</label>
+      <input type="date" name="to_date" class="form-control" value="<%= params[:to_date] %>">
+    </div>
+    <div class="form-group" style="align-self:flex-end;">
+      <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+      <button type="button" id="filter-reset" class="btn btn-outline btn-sm">Reset</button>
+    </div>
+  </div>
+<% end %>
+
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>Subject</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Status</th>
+        <th>Sent at</th>
+        <th>Opens</th>
+        <th>Clicks</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @emails.each do |email| %>
+        <tr>
+          <td><%= email.subject.presence || "(no subject)" %></td>
+          <td><%= email.source %></td>
+          <td><%= format_destination(email.destination) %></td>
+          <td><%= status_badge(email.status) %></td>
+          <td style="white-space:nowrap;"><%= email.sent_at&.strftime("%Y-%m-%d %H:%M") || "—" %></td>
+          <td><%= email.opens %></td>
+          <td><%= email.clicks %></td>
+          <td><%= link_to "Details", project_email_path(@project, email), class: "btn btn-sm btn-outline" %></td>
+        </tr>
+      <% end %>
+      <% if @emails.empty? %>
+        <tr><td colspan="8" style="color:var(--color-text-muted);text-align:center;padding:2rem;">No emails found.</td></tr>
+      <% end %>
+    </tbody>
+  </table>
+  <%= render "ses_dashboard/shared/pagination", pagination: @pagination %>
+</div>

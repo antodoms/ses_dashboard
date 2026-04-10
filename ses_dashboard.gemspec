@@ -5,7 +5,8 @@ Gem::Specification.new do |spec|
   spec.email         = ["antodoms@outlook.com"]
 
   spec.summary       = "SES dashboard gem with pluggable authentication and AWS SES data fetching."
-  spec.description   = "A reusable Ruby gem for rendering SES usage and identity dashboards with optional authentication adapters."
+  spec.description   = "A mountable Rails engine that provides a real-time dashboard for Amazon SES, " \
+                       "tracking email delivery, bounces, complaints, opens, and clicks via SNS webhooks."
   spec.license       = "MIT"
   spec.homepage      = "https://github.com/antodoms/ses_dashboard"
   spec.required_ruby_version = ">= 3.0"
@@ -15,17 +16,34 @@ Gem::Specification.new do |spec|
   spec.metadata["changelog_uri"]   = "https://github.com/antodoms/ses_dashboard/CHANGELOG.md"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    Dir["lib/**/*.rb"] + Dir["README.md"] + Dir["Rakefile"] + Dir["Dockerfile"] + Dir["docker-compose.yml"]
+    Dir["lib/**/*.rb"] +
+      Dir["app/**/*"] +
+      Dir["config/**/*"] +
+      Dir["db/**/*"] +
+      Dir["README.md"] +
+      Dir["Rakefile"] +
+      Dir["Dockerfile"] +
+      Dir["docker-compose.yml"]
   end
 
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "aws-sdk-ses", ">= 1.0"
-  spec.add_dependency "rack", ">= 2.0"
-  spec.add_dependency "rexml"  # required by aws-sdk-core XML parser; no longer a default gem in Ruby 3.4+
+  # Runtime dependencies
+  spec.add_dependency "railties",      ">= 7.0"
+  spec.add_dependency "activerecord",  ">= 7.0"
+  spec.add_dependency "actionpack",    ">= 7.0"
+  spec.add_dependency "actionview",    ">= 7.0"
+  spec.add_dependency "aws-sdk-ses",   ">= 1.0"
+  spec.add_dependency "rexml"  # required by aws-sdk-core XML parser; no longer default in Ruby 3.4+
 
-  spec.add_development_dependency "bundler", ">= 2.0"
+  # Development/test dependencies
+  spec.add_development_dependency "bundler",          ">= 2.0"
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"
+  spec.add_development_dependency "rspec-rails",      ">= 6.0"
   spec.add_development_dependency "rack-test"
+  spec.add_development_dependency "rails",            ">= 7.0"
+  spec.add_development_dependency "sqlite3",          "~> 1.4"
+  spec.add_development_dependency "factory_bot_rails"
+  spec.add_development_dependency "capybara"
 end

@@ -1,0 +1,15 @@
+<% if pagination[:total_pages] > 1 %>
+  <div class="pagination">
+    <%= pagination_link("&laquo; Prev".html_safe, pagination[:prev_page]) %>
+    <span class="pagination-info">
+      Page <%= pagination[:page] %> of <%= pagination[:total_pages] %>
+      &nbsp;&middot;&nbsp;
+      <%= number_with_delimiter(pagination[:total_count]) %> total
+    </span>
+    <%= pagination_link("Next &raquo;".html_safe, pagination[:next_page]) %>
+  </div>
+<% else %>
+  <div class="pagination">
+    <span class="pagination-info"><%= number_with_delimiter(pagination[:total_count]) %> records</span>
+  </div>
+<% end %>

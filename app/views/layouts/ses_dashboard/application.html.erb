@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SES Dashboard</title>
+  <%= stylesheet_link_tag "ses_dashboard/application", media: "all" %>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4" defer></script>
+  <%= javascript_include_tag "ses_dashboard/application", defer: true %>
+  <%= csrf_meta_tags %>
+</head>
+<body>
+  <nav class="ses-nav">
+    <span class="ses-nav-brand">SES Dashboard</span>
+    <%= link_to "Dashboard", root_path %>
+    <%= link_to "Projects",  projects_path %>
+    <span class="ses-nav-spacer"></span>
+  </nav>
+
+  <div class="ses-container">
+    <%= render "ses_dashboard/shared/flash" %>
+    <%= yield %>
+  </div>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<div class="page-header">
+  <h1 class="page-title">Dashboard</h1>
+  <form method="get" style="display:flex;gap:.5rem;align-items:center;">
+    <input type="date" name="from" class="form-control" value="<%= @from.to_date %>" style="width:auto;">
+    <span>to</span>
+    <input type="date" name="to"   class="form-control" value="<%= @to.to_date   %>" style="width:auto;">
+    <button type="submit" class="btn btn-outline btn-sm">Apply</button>
+  </form>
+</div>
+
+<div class="stat-grid">
+  <%= render "ses_dashboard/shared/stat_card", label: "Sent",          value: @counters[:total],         color: "var(--color-text)" %>
+  <%= render "ses_dashboard/shared/stat_card", label: "Delivered",     value: @counters[:delivered],     color: "var(--color-delivered)" %>
+  <%= render "ses_dashboard/shared/stat_card", label: "Opens",         value: @total_opens,              color: "var(--color-primary)" %>
+  <%= render "ses_dashboard/shared/stat_card", label: "Clicks",        value: @total_clicks,             color: "var(--color-primary)" %>
+  <%= render "ses_dashboard/shared/stat_card", label: "Not Delivered", value: @counters[:not_delivered], color: "var(--color-bounced)" %>
+  <%= render "ses_dashboard/shared/stat_card", label: "Bounced",       value: @counters[:bounced],       color: "var(--color-bounced)" %>
+  <%= render "ses_dashboard/shared/stat_card", label: "Complained",    value: @counters[:complained],    color: "var(--color-complained)" %>
+</div>
+
+<div class="card chart-card">
+  <div class="card-title">Email volume (by day)</div>
+  <canvas id="activity-chart"></canvas>
+</div>
+<%= chart_data_tag(@chart_data) %>
+
+<div class="page-header" style="margin-top:1.5rem;">
+  <h2 class="page-title" style="font-size:1rem;">Projects</h2>
+  <%= link_to "Manage projects", projects_path, class: "btn btn-outline btn-sm" %>
+</div>
+
+<div class="table-wrapper">
+  <table>
+    <thead>
+      <tr>
+        <th>Project</th>
+        <th>Total emails</th>
+        <th>Activity</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @projects.each do |project| %>
+        <tr>
+          <td><%= link_to project.name, project_path(project) %></td>
+          <td><%= number_with_delimiter(project.emails.count) %></td>
+          <td><%= link_to "View activity", project_emails_path(project) %></td>
+        </tr>
+      <% end %>
+      <% if @projects.empty? %>
+        <tr><td colspan="3" style="color:var(--color-text-muted);text-align:center;padding:2rem;">
+          No projects yet. <%= link_to "Create one", new_project_path %>.
+        </td></tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,60 @@
+<div class="page-header">
+  <h1 class="page-title">Email detail</h1>
+  <%= link_to "&larr; Back to activity".html_safe, project_emails_path(@project), class: "btn btn-outline btn-sm" %>
+</div>
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <table style="width:100%;border:none;">
+    <tbody>
+      <tr>
+        <td style="width:120px;color:var(--color-text-muted);font-weight:600;padding:.4rem 0;">Subject</td>
+        <td><%= @email.subject.presence || "(no subject)" %></td>
+      </tr>
+      <tr>
+        <td style="color:var(--color-text-muted);font-weight:600;padding:.4rem 0;">From</td>
+        <td><%= @email.source %></td>
+      </tr>
+      <tr>
+        <td style="color:var(--color-text-muted);font-weight:600;padding:.4rem 0;">To</td>
+        <td><%= format_destination(@email.destination) %></td>
+      </tr>
+      <tr>
+        <td style="color:var(--color-text-muted);font-weight:600;padding:.4rem 0;">Status</td>
+        <td><%= status_badge(@email.status) %></td>
+      </tr>
+      <tr>
+        <td style="color:var(--color-text-muted);font-weight:600;padding:.4rem 0;">Sent at</td>
+        <td><%= @email.sent_at&.strftime("%Y-%m-%d %H:%M UTC") || "—" %></td>
+      </tr>
+      <tr>
+        <td style="color:var(--color-text-muted);font-weight:600;padding:.4rem 0;">Opens / Clicks</td>
+        <td><%= @email.opens %> / <%= @email.clicks %></td>
+      </tr>
+      <tr>
+        <td style="color:var(--color-text-muted);font-weight:600;padding:.4rem 0;">Message ID</td>
+        <td style="font-family:monospace;font-size:.8125rem;"><%= @email.message_id %></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 class="page-title" style="font-size:1rem;margin-bottom:1rem;">Event timeline</h2>
+
+<ul class="event-timeline card">
+  <% @events.each do |event| %>
+    <li class="event-item">
+      <span class="event-time"><%= event.occurred_at&.strftime("%Y-%m-%d %H:%M:%S UTC") %></span>
+      <div>
+        <%= status_badge(event.event_type) %>
+        <% if event.event_data.present? %>
+          <br>
+          <button class="event-data-toggle">Show raw</button>
+          <pre class="event-raw"><%= JSON.pretty_generate(event.event_data) %></pre>
+        <% end %>
+      </div>
+    </li>
+  <% end %>
+  <% if @events.empty? %>
+    <li style="padding:1rem;color:var(--color-text-muted);">No events recorded.</li>
+  <% end %>
+</ul>

@@ -1,5 +1,5 @@
 Gem::Specification.new do |spec|
-  spec.name          = "ses_dashboard"
+  spec.name          = "ses-dashboard"
   spec.version       = SesDashboard::VERSION rescue "0.1.0"
   spec.authors       = ["antodoms"]
   spec.email         = ["antodoms@outlook.com"]

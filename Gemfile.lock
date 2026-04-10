@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    ses_dashboard (0.1.0)
+    ses-dashboard (0.1.0)
       actionpack (>= 7.0)
       actionview (>= 7.0)
       activerecord (>= 7.0)
@@ -311,7 +311,7 @@ DEPENDENCIES
   rspec
   rspec-rails
   selenium-webdriver
-  ses_dashboard!
+  ses-dashboard!
   sqlite3 (>= 2.1)
 
 BUNDLED WITH

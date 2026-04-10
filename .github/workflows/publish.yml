@@ -29,4 +29,4 @@ jobs:
         run: gem build ses_dashboard.gemspec
 
       - name: Push to RubyGems
-        run: gem push ses_dashboard-*.gem
+        run: gem push ses-dashboard-*.gem

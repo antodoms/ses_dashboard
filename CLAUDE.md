@@ -25,10 +25,10 @@ bundle exec rspec spec/models/ses_dashboard/email_spec.rb:15
 bundle exec rspec spec/controllers
 
 # Run all tests in Docker (includes system specs with Selenium Chrome)
-docker compose run --rm app bundle exec rspec
+docker compose run --rm web bundle exec rspec
 
 # Run only system specs (requires Docker for Chrome)
-docker compose run --rm app bundle exec rspec spec/system
+docker compose run --rm web bundle exec rspec spec/system
 ```
 
 System specs require Docker Compose — they use a remote Selenium Chrome container. Unit and controller specs run locally without Docker.
@@ -69,4 +69,11 @@ System specs require Docker Compose — they use a remote Selenium Chrome contai
 
 - `localstack` — Local AWS (SES + SNS) on port 4566
 - `chrome` — Selenium standalone Chromium for system specs (noVNC on port 7900)
-- `app` — Runs specs with all services wired up
+- `web` — Runs specs with all services wired up
+
+### Important notes
+
+- The Docker service is named `web`, not `app`, because Chrome's HSTS preload list force-upgrades the bare hostname `app` (matching the `.app` gTLD) to HTTPS.
+- System specs auto-detect the container's IP on the Docker bridge network for Capybara (`spec/support/capybara.rb`), avoiding hostname resolution issues.
+- The engine uses `autoload :Engine` in `lib/ses_dashboard.rb`. The dummy app explicitly requires `ses_dashboard/engine` after Rails to ensure the engine is registered before initialization.
+- Engine views use explicit URL helpers (e.g., `projects_path`) rather than polymorphic routing (`[:ses_dashboard, project]`) to avoid namespace conflicts with the host app.

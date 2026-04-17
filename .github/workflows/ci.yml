@@ -27,7 +27,7 @@ jobs:
           AWS_DEFAULT_REGION: us-east-1
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unit
@@ -73,7 +73,7 @@ jobs:
           SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: system

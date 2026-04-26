@@ -4,6 +4,41 @@
 
 A mountable Rails engine that provides a real-time dashboard for Amazon SES, tracking email delivery, bounces, complaints, opens, and clicks via SNS webhooks.
 
+## Screenshots
+
+![Combined Dashboard](docs/screenshots/combined-projects-dashboard.png)
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/project-dashboard-view-page.png" alt="Project Dashboard" /></td>
+    <td><img src="docs/screenshots/project-activity-page.png" alt="Activity Log" /></td>
+  </tr>
+  <tr>
+    <td align="center"><em>Per-project stats &amp; email volume chart</em></td>
+    <td align="center"><em>Paginated activity log with search &amp; export</em></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/email-details.png" alt="Email Detail" /></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><em>Email detail with full SNS event timeline</em></td>
+  </tr>
+</table>
+
+## Features
+
+- **Real-time webhook processing** -- receives SNS notifications for delivery, bounce, complaint, open, click, reject, and rendering failure events
+- **Per-project dashboards** -- stat cards, email volume charts (Chart.js), and paginated activity logs
+- **Pluggable authentication** -- ships with Devise, Cloudflare Zero Trust, and no-auth adapters; bring your own with any object that responds to `#authenticate(request)`
+- **CSV/JSON export** -- export filtered email activity from any project
+- **Test email sending** -- send test emails directly from the dashboard via the SES API
+- **Status state machine** -- unidirectional email status transitions (sent -> delivered/bounced/etc.)
+- **SNS signature verification** -- validates RSA signatures (SHA1 and SHA256) on incoming SNS messages
+- **Database agnostic** -- works with SQLite, PostgreSQL, and MySQL
+- **Lightweight pagination** -- no external pagination gem required
+
+## Architecture
+
 ```mermaid
 graph TB
     subgraph Host["Host Rails App"]
@@ -31,6 +66,7 @@ graph TB
         subgraph Core["Core Library (lib/)"]
             Client["Client<br/>AWS SES SDK wrapper"]
             WP["WebhookProcessor<br/>SNS message parser"]
+            SV["SnsSignatureVerifier"]
             SA["StatsAggregator<br/>Dashboard statistics"]
             Pag["Paginatable"]
         end
@@ -56,7 +92,8 @@ graph TB
     DC --> SA
     EC --> Pag
     TC --> Client
-    WC -->|"POST /webhook/:token"| WP
+    WC -->|"POST /webhook/:token"| SV
+    SV --> WP
     WP --> WEP
     WEP --> Models
     Client --> SES
@@ -69,17 +106,6 @@ graph TB
     style AWS fill:#fff3e0,stroke:#ff9800
     style Host fill:#e8f5e9,stroke:#4caf50
 ```
-
-## Features
-
-- **Real-time webhook processing** -- receives SNS notifications for delivery, bounce, complaint, open, click, reject, and rendering failure events
-- **Per-project dashboards** -- stat cards, email volume charts (Chart.js), and paginated activity logs
-- **Pluggable authentication** -- ships with Devise, Cloudflare Zero Trust, and no-auth adapters; bring your own with any object that responds to `#authenticate(request)`
-- **CSV/JSON export** -- export filtered email activity from any project
-- **Test email sending** -- send test emails directly from the dashboard via the SES API
-- **Status state machine** -- unidirectional email status transitions (sent -> delivered/bounced/etc.)
-- **Database agnostic** -- works with SQLite, PostgreSQL, and MySQL
-- **Lightweight pagination** -- no external pagination gem required
 
 ## Installation
 
@@ -179,7 +205,7 @@ For apps with session timeout and whitelist checks (e.g. custom Rails session au
 my_auth = Class.new(SesDashboard::Auth::Base) do
   def authenticate(request)
     session = request.session
-    user_id     = session[:user_id]
+    user_id      = session[:user_id]
     logged_in_at = session[:logged_in_at]
 
     return false unless user_id && logged_in_at
@@ -213,19 +239,17 @@ To connect it to SES:
 
 The webhook endpoint authenticates via the project token in the URL and does not require a session.
 
-## Database Schema
+### SNS Signature Verification
 
-The engine creates three tables (prefixed `ses_dashboard_`):
+When `verify_sns_signature = true`, the engine validates the RSA signature on every incoming SNS message before processing it. Both `SignatureVersion` `"1"` (SHA1) and `"2"` (SHA256) are supported.
 
-| Table | Key Columns |
-|---|---|
-| `ses_dashboard_projects` | `name`, `token` (unique, auto-generated), `description` |
-| `ses_dashboard_emails` | `project_id`, `message_id` (unique), `source`, `destination` (JSON), `subject`, `status`, `opens`, `clicks`, `sent_at` |
-| `ses_dashboard_email_events` | `email_id`, `event_type`, `event_data` (JSON), `occurred_at` |
+For **raw message delivery** (SNS subscription setting), signature verification is automatically skipped as SNS does not include signature fields in raw payloads — the project token in the URL provides authentication instead.
 
-Email statuses: `sent`, `delivered`, `bounced`, `complained`, `rejected`, `failed`.
+Enable in production:
 
-Migrations are compatible with Rails 7.x and 8.x — the migration version is resolved automatically from the host app's Rails version at install time.
+```ruby
+c.verify_sns_signature = Rails.env.production?
+```
 
 ## Development
 
@@ -269,6 +293,20 @@ bundle exec rspec spec/models/ses_dashboard/email_spec.rb:15
 ### Watching System Tests
 
 Open http://localhost:7900 in your browser (no password) to watch Chrome execute system specs in real time via noVNC.
+
+## Database Schema
+
+The engine creates three tables (prefixed `ses_dashboard_`):
+
+| Table | Key Columns |
+|---|---|
+| `ses_dashboard_projects` | `name`, `token` (unique, auto-generated), `description` |
+| `ses_dashboard_emails` | `project_id`, `message_id` (unique), `source`, `destination` (JSON), `subject`, `status`, `opens`, `clicks`, `sent_at` |
+| `ses_dashboard_email_events` | `email_id`, `event_type`, `event_data` (JSON), `occurred_at` |
+
+Email statuses: `sent`, `delivered`, `bounced`, `complained`, `rejected`, `failed`.
+
+Migrations are compatible with Rails 7.x and 8.x — the migration version is resolved automatically from the host app's Rails version at install time.
 
 ## License
 

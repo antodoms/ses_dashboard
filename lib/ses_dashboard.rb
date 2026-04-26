@@ -1,12 +1,3 @@
-require_relative "ses_dashboard/version"
-require_relative "ses_dashboard/client"
-require_relative "ses_dashboard/webhook_processor"
-require_relative "ses_dashboard/stats_aggregator"
-require_relative "ses_dashboard/paginatable"
-require_relative "ses_dashboard/auth/base"
-require_relative "ses_dashboard/auth/devise_adapter"
-require_relative "ses_dashboard/auth/cloudflare_adapter"
-
 module SesDashboard
   class Error < StandardError; end
 
@@ -61,6 +52,15 @@ module SesDashboard
       @cloudflare_aud          = nil
     end
   end
-
-  require "ses_dashboard/engine"
 end
+
+require_relative "ses_dashboard/version"
+require_relative "ses_dashboard/client"
+require_relative "ses_dashboard/webhook_processor"
+require_relative "ses_dashboard/sns_signature_verifier"
+require_relative "ses_dashboard/stats_aggregator"
+require_relative "ses_dashboard/paginatable"
+require_relative "ses_dashboard/auth/base"
+require_relative "ses_dashboard/auth/devise_adapter"
+require_relative "ses_dashboard/auth/cloudflare_adapter"
+require "ses_dashboard/engine"

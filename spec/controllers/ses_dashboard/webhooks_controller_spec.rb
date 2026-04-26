@@ -62,5 +62,59 @@ RSpec.describe SesDashboard::WebhooksController, type: :controller do
         expect(response).to have_http_status(:not_found)
       end
     end
+
+    context "SNS signature verification" do
+      before do
+        SesDashboard.configure { |c| c.verify_sns_signature = true }
+      end
+
+      it "returns 200 when signature verification passes" do
+        allow_any_instance_of(SesDashboard::SnsSignatureVerifier).to receive(:verify!).and_return(true)
+        json_post(project.token, sns_notification("delivery"))
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "returns 403 when signature verification fails" do
+        allow_any_instance_of(SesDashboard::SnsSignatureVerifier)
+          .to receive(:verify!)
+          .and_raise(SesDashboard::SnsSignatureVerifier::VerificationError, "bad signature")
+
+        json_post(project.token, sns_notification("delivery"))
+        expect(response).to have_http_status(:forbidden)
+      end
+
+      it "does not persist the event when verification fails" do
+        allow_any_instance_of(SesDashboard::SnsSignatureVerifier)
+          .to receive(:verify!)
+          .and_raise(SesDashboard::SnsSignatureVerifier::VerificationError, "bad signature")
+
+        expect {
+          json_post(project.token, sns_notification("delivery"))
+        }.not_to change(SesDashboard::Email, :count)
+      end
+
+      it "skips verification for raw delivery (no SigningCertURL in body)" do
+        raw_body = {
+          "eventType" => "Delivery",
+          "mail" => {
+            "messageId"   => "raw-msg-skip-verify",
+            "source"      => "sender@example.com",
+            "destination" => ["to@example.com"],
+            "timestamp"   => "2024-01-15T10:00:00Z"
+          }
+        }.to_json
+
+        expect(SesDashboard::SnsSignatureVerifier).not_to receive(:new)
+        json_post(project.token, raw_body)
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "does not verify when verify_sns_signature is false" do
+        SesDashboard.configure { |c| c.verify_sns_signature = false }
+        expect(SesDashboard::SnsSignatureVerifier).not_to receive(:new)
+        json_post(project.token, sns_notification("delivery"))
+        expect(response).to have_http_status(:ok)
+      end
+    end
   end
 end

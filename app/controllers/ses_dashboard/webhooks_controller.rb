@@ -11,6 +11,10 @@ module SesDashboard
       project = Project.find_by!(token: params[:project_token])
       request.body.rewind
       body   = request.body.read
+      sns    = parse_sns_json(body)
+
+      verify_sns_signature!(sns) if sns && SesDashboard.configuration.verify_sns_signature
+
       result = WebhookProcessor.new(body).process
 
       case result.action
@@ -23,6 +27,9 @@ module SesDashboard
       head :ok
     rescue ActiveRecord::RecordNotFound
       head :not_found
+    rescue SnsSignatureVerifier::VerificationError => e
+      Rails.logger.warn("[SesDashboard] SNS signature rejected: #{e.message}") if defined?(Rails)
+      head :forbidden
     rescue => e
       Rails.logger.error("[SesDashboard] Webhook error: #{e.message}") if defined?(Rails)
       head :unprocessable_entity
@@ -34,6 +41,19 @@ module SesDashboard
       Net::HTTP.get(URI(url))
     rescue => e
       Rails.logger.warn("[SesDashboard] SNS subscription confirm failed: #{e.message}") if defined?(Rails)
+    end
+
+    def parse_sns_json(body)
+      JSON.parse(body)
+    rescue JSON::ParserError
+      nil
+    end
+
+    def verify_sns_signature!(sns)
+      # Skip verification for raw delivery — no SNS envelope means no signature fields.
+      return unless sns&.key?("SigningCertURL")
+
+      SnsSignatureVerifier.new(sns).verify!
     end
   end
 end

@@ -23,12 +23,19 @@ A mountable Rails engine that provides a real-time dashboard for Amazon SES, tra
   <tr>
     <td colspan="2" align="center"><em>Email detail with full SNS event timeline</em></td>
   </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/webhook-forward-ruleset.png" alt="Webhook Forward Rules" /></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><em>Per-project webhook forwarding with configurable rules</em></td>
+  </tr>
 </table>
 
 ## Features
 
 - **Real-time webhook processing** -- receives SNS notifications for delivery, bounce, complaint, open, click, reject, and rendering failure events
 - **Per-project dashboards** -- stat cards, email volume charts (Chart.js), and paginated activity logs
+- **Webhook forwarding with rules** -- forward specific events to external URLs (e.g. Zapier) with a configurable rules engine; filter by event type, sender, recipient, subject, and more
 - **Pluggable authentication** -- ships with Devise, Cloudflare Zero Trust, and no-auth adapters; bring your own with any object that responds to `#authenticate(request)`
 - **CSV/JSON export** -- export filtered email activity from any project
 - **Test email sending** -- send test emails directly from the dashboard via the SES API
@@ -69,16 +76,18 @@ graph TB
             SV["SnsSignatureVerifier"]
             SA["StatsAggregator<br/>Dashboard statistics"]
             Pag["Paginatable"]
+            FR["ForwardRule<br/>field/operator/value matcher"]
         end
 
         subgraph Models
-            Project["Project<br/>name, token"]
+            Project["Project<br/>name, token, webhook_forwards"]
             Email["Email<br/>status, opens, clicks"]
             Event["EmailEvent<br/>event_type, event_data"]
         end
 
         subgraph Services
             WEP["WebhookEventPersistor"]
+            WF["WebhookForwarder<br/>rules-based HTTP forwarding"]
         end
     end
 
@@ -95,6 +104,9 @@ graph TB
     WC -->|"POST /webhook/:token"| SV
     SV --> WP
     WP --> WEP
+    WP --> WF
+    WF --> FR
+    WF -->|"HTTP POST"| ExtURL["External URL<br/>(Zapier, etc.)"]
     WEP --> Models
     Client --> SES
     SNS -->|"HTTP POST"| WC
@@ -105,6 +117,7 @@ graph TB
     style Engine fill:#f0f4ff,stroke:#3366cc
     style AWS fill:#fff3e0,stroke:#ff9800
     style Host fill:#e8f5e9,stroke:#4caf50
+    style ExtURL fill:#fce4ec,stroke:#e91e63
 ```
 
 ## Installation
@@ -251,6 +264,113 @@ Enable in production:
 c.verify_sns_signature = Rails.env.production?
 ```
 
+## Webhook Forwarding
+
+Forward SES events to external URLs (e.g. Zapier, Google Sheets, Slack) based on configurable rules. This is useful for routing bounce/complaint notifications into team workflows without consuming unnecessary webhook quota on events you don't need.
+
+![Webhook Forward Rules](docs/screenshots/webhook-forward-ruleset.png)
+
+### Per-project configuration (UI)
+
+Edit any project in the dashboard and use the **Webhook Forwards** builder to add forward targets with rules. Each target has a URL and optional rules -- all rules must match (AND logic) for the event to be forwarded. No rules means forward everything.
+
+### Per-project configuration (database)
+
+The `webhook_forwards` column on `ses_dashboard_projects` stores a JSON array:
+
+```json
+[
+  {
+    "url": "https://hooks.zapier.com/hooks/catch/123/abc/",
+    "rules": [
+      { "field": "event_type", "operator": "in", "value": ["bounce", "complaint"] }
+    ]
+  }
+]
+```
+
+### Global fallback (initializer)
+
+Used for any project that has no project-level forwards configured:
+
+```ruby
+SesDashboard.configure do |c|
+  c.webhook_forwards = [
+    { url: "https://hooks.zapier.com/hooks/catch/123/abc/",
+      rules: [{ field: "event_type", operator: "in", value: ["bounce", "complaint"] }] }
+  ]
+end
+```
+
+### Rules reference
+
+Each rule has a `field`, `operator`, and `value`. All rules on a target must match for the event to be forwarded.
+
+| Field | Type | Description |
+|---|---|---|
+| `event_type` | string | `send`, `delivery`, `bounce`, `complaint`, `open`, `click`, `reject`, `rendering_failure` |
+| `source` | string | From: email address |
+| `destination` | array | To: email addresses -- rule passes if **any** recipient matches |
+| `subject` | string | Email subject line |
+
+| Operator | Description |
+|---|---|
+| `in` | Value is included in the given array |
+| `not_in` | Value is NOT included in the given array |
+| `eq` | Exact string equality (any element for array fields) |
+| `not_eq` | String inequality |
+| `starts_with` | Prefix match (any element for array fields) |
+| `ends_with` | Suffix match (any element for array fields) |
+| `contains` | Substring match (any element for array fields) |
+
+### Forwarded payload
+
+Each matching URL receives a `POST` with a JSON body:
+
+```json
+{
+  "event_type":  "bounce",
+  "message_id":  "0102018e-abcd-1234-...",
+  "source":      "noreply@myapp.com",
+  "destination": ["user@example.com"],
+  "subject":     "Your invoice #1234",
+  "occurred_at": "2024-01-15T10:00:00Z",
+  "raw":         { "...full SES event hash..." }
+}
+```
+
+### Examples
+
+Forward only bounces and complaints to Zapier:
+
+```json
+[
+  {
+    "url": "https://hooks.zapier.com/hooks/catch/123/abc/",
+    "rules": [
+      { "field": "event_type", "operator": "in", "value": ["bounce", "complaint"] }
+    ]
+  }
+]
+```
+
+Forward bounces from a specific sender domain to one URL, all events to another:
+
+```json
+[
+  {
+    "url": "https://hooks.zapier.com/bounces",
+    "rules": [
+      { "field": "event_type", "operator": "eq", "value": "bounce" },
+      { "field": "source", "operator": "ends_with", "value": "@myapp.com" }
+    ]
+  },
+  {
+    "url": "https://example.com/all-events"
+  }
+]
+```
+
 ## Development
 
 ### Prerequisites
@@ -300,7 +420,7 @@ The engine creates three tables (prefixed `ses_dashboard_`):
 
 | Table | Key Columns |
 |---|---|
-| `ses_dashboard_projects` | `name`, `token` (unique, auto-generated), `description` |
+| `ses_dashboard_projects` | `name`, `token` (unique, auto-generated), `description`, `webhook_forwards` (JSON) |
 | `ses_dashboard_emails` | `project_id`, `message_id` (unique), `source`, `destination` (JSON), `subject`, `status`, `opens`, `clicks`, `sent_at` |
 | `ses_dashboard_email_events` | `email_id`, `event_type`, `event_data` (JSON), `occurred_at` |
 

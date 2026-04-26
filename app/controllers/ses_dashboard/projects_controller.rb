@@ -55,7 +55,7 @@ module SesDashboard
     end
 
     def project_params
-      params.require(:project).permit(:name, :description)
+      params.require(:project).permit(:name, :description, :webhook_forwards_text)
     end
 
     def parse_date(str)

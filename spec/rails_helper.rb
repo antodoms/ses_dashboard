@@ -28,11 +28,13 @@ ActiveRecord::Schema.verbose = false
 load File.expand_path("../db/migrate/20240101000001_create_ses_dashboard_projects.rb", __dir__)
 load File.expand_path("../db/migrate/20240101000002_create_ses_dashboard_emails.rb", __dir__)
 load File.expand_path("../db/migrate/20240101000003_create_ses_dashboard_email_events.rb", __dir__)
+load File.expand_path("../db/migrate/20240101000004_add_webhook_forwards_to_ses_dashboard_projects.rb", __dir__)
 
 ActiveRecord::Migration.suppress_messages do
   CreateSesDashboardProjects.new.change
   CreateSesDashboardEmails.new.change
   CreateSesDashboardEmailEvents.new.change
+  AddWebhookForwardsToSesDashboardProjects.new.change
 end
 
 RSpec.configure do |config|

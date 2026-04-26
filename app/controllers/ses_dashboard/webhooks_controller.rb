@@ -22,6 +22,7 @@ module SesDashboard
         confirm_subscription(result.subscribe_url)
       when :process_event
         WebhookEventPersistor.new(project, result).persist
+        WebhookForwarder.new(project, result).forward
       end
 
       head :ok

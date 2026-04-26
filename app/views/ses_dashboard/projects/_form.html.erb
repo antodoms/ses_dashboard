@@ -19,6 +19,22 @@
     <%= f.text_area :description, class: "form-control", placeholder: "Optional description" %>
   </div>
 
+  <div class="form-group">
+    <label class="form-label">Webhook Forwards</label>
+    <small class="form-hint" style="margin-bottom:.5rem;display:block;">
+      Forward events to external URLs (e.g. Zapier). Add rules to filter which events are forwarded.
+      All rules must match. Leave empty to use global defaults.
+    </small>
+
+    <%= f.hidden_field :webhook_forwards_text, id: "webhook-forwards-json" %>
+
+    <div id="wf-targets"></div>
+
+    <button type="button" class="btn btn-outline btn-sm" id="wf-add-target">+ Add Forward Target</button>
+
+    <script type="application/json" id="wf-initial-data"><%= raw project.webhook_forwards_text.html_safe %></script>
+  </div>
+
   <%= f.submit class: "btn btn-primary" %>
   <%= link_to "Cancel", projects_path, class: "btn btn-outline" %>
 <% end %>

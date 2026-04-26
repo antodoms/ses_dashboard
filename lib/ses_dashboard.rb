@@ -37,6 +37,15 @@ module SesDashboard
     attr_accessor :cloudflare_team_domain  # e.g. "myteam.cloudflareaccess.com"
     attr_accessor :cloudflare_aud          # JWT audience (your CF application AUD)
 
+    # Webhook forwarding — forward specific event types to external URLs (e.g. Zapier)
+    # Format: array of hashes with :url and :event_types keys
+    # Example:
+    #   c.webhook_forwards = [
+    #     { url: "https://hooks.zapier.com/...", event_types: ["bounce", "complaint"] }
+    #   ]
+    # Omit :event_types (or set to []) to forward all event types.
+    attr_accessor :webhook_forwards
+
     def initialize
       @aws_region              = ENV.fetch("AWS_REGION", "us-east-1")
       @aws_access_key_id       = nil
@@ -50,6 +59,7 @@ module SesDashboard
       @verify_sns_signature    = false
       @cloudflare_team_domain  = nil
       @cloudflare_aud          = nil
+      @webhook_forwards        = []
     end
   end
 end
@@ -57,6 +67,8 @@ end
 require_relative "ses_dashboard/version"
 require_relative "ses_dashboard/client"
 require_relative "ses_dashboard/webhook_processor"
+require_relative "ses_dashboard/forward_rule"
+require_relative "ses_dashboard/webhook_forwarder"
 require_relative "ses_dashboard/sns_signature_verifier"
 require_relative "ses_dashboard/stats_aggregator"
 require_relative "ses_dashboard/paginatable"

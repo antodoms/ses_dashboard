@@ -193,9 +193,8 @@ RSpec.describe SesDashboard::WebhookProcessor do
         expect(result.action).to eq(:unknown)
       end
 
-      it "returns :unknown for an unrecognised SNS type" do
-        body = { "Type" => "UnsubscribeConfirmation" }.to_json
-        result = described_class.new(body).process
+      it "returns :unknown for an empty body" do
+        result = described_class.new("").process
         expect(result.action).to eq(:unknown)
       end
     end

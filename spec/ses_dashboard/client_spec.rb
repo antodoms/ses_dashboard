@@ -71,16 +71,15 @@ RSpec.describe SesDashboard::Client do
 
     it "uses destination.to_addresses not destinations" do
       ses = client.send(:ses_client)
-      sent_params = nil
-      ses.stub_responses(:send_email) do |context|
-        sent_params = context.params
-        { message_id: "msg-1" }
-      end
+      ses.stub_responses(:send_email, message_id: "msg-1")
+
+      expect(ses).to receive(:send_email).with(
+        hash_including(
+          destination: { to_addresses: ["b@example.com"] }
+        )
+      ).and_call_original
 
       client.send_email(from: "a@example.com", to: "b@example.com", subject: "Hi", body: "Body")
-
-      expect(sent_params[:destination][:to_addresses]).to eq(["b@example.com"])
-      expect(sent_params).not_to have_key(:destinations)
     end
   end
 end

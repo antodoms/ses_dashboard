@@ -5,7 +5,7 @@ RSpec.describe SesDashboard::WebhooksController, type: :controller do
 
   let(:project) { create(:ses_dashboard_project) }
 
-  def sns_notification(event_type, message_id: "msg-#{SecureRandom.hex(4)}")
+  def sns_notification(event_type, message_id: "msg-#{SecureRandom.hex(4)}", signed: false)
     inner = {
       "eventType" => event_type.capitalize,
       "mail" => {
@@ -16,7 +16,17 @@ RSpec.describe SesDashboard::WebhooksController, type: :controller do
         "commonHeaders" => { "subject" => "Test" }
       }
     }
-    { "Type" => "Notification", "Message" => inner.to_json }.to_json
+    envelope = {
+      "Type"           => "Notification",
+      "MessageId"      => SecureRandom.hex(8),
+      "TopicArn"       => "arn:aws:sns:us-east-1:123456789:test",
+      "Timestamp"      => "2024-01-15T10:00:00.000Z",
+      "Message"        => inner.to_json,
+      "Signature"      => "fake",
+      "SignatureVersion" => "2"
+    }
+    envelope["SigningCertURL"] = "https://sns.us-east-1.amazonaws.com/cert.pem" if signed
+    envelope.to_json
   end
 
   def json_post(project_token, body)
@@ -56,6 +66,50 @@ RSpec.describe SesDashboard::WebhooksController, type: :controller do
       end
     end
 
+    context "raw message delivery (no SNS envelope)" do
+      def raw_notification(event_type, message_id: "raw-#{SecureRandom.hex(4)}")
+        {
+          "eventType" => event_type.capitalize,
+          "mail" => {
+            "messageId"   => message_id,
+            "source"      => "sender@example.com",
+            "destination" => ["to@example.com"],
+            "timestamp"   => "2024-01-15T10:00:00Z"
+          }
+        }.to_json
+      end
+
+      it "persists the email" do
+        expect {
+          json_post(project.token, raw_notification("send"))
+        }.to change(SesDashboard::Email, :count).by(1)
+      end
+
+      it "persists the event" do
+        expect {
+          json_post(project.token, raw_notification("delivery"))
+        }.to change(SesDashboard::EmailEvent, :count).by(1)
+      end
+
+      it "returns 200 OK" do
+        json_post(project.token, raw_notification("send"))
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
+    context "SNS SubscriptionConfirmation" do
+      it "hits the SubscribeURL and returns 200" do
+        body = {
+          "Type"         => "SubscriptionConfirmation",
+          "SubscribeURL" => "https://sns.us-east-1.amazonaws.com/confirm?token=abc"
+        }.to_json
+
+        expect(Net::HTTP).to receive(:get).with(URI("https://sns.us-east-1.amazonaws.com/confirm?token=abc"))
+        json_post(project.token, body)
+        expect(response).to have_http_status(:ok)
+      end
+    end
+
     context "with an invalid token" do
       it "returns 404" do
         json_post("invalid-token", sns_notification("delivery"))
@@ -68,9 +122,11 @@ RSpec.describe SesDashboard::WebhooksController, type: :controller do
         SesDashboard.configure { |c| c.verify_sns_signature = true }
       end
 
-      it "returns 200 when signature verification passes" do
+      it "returns 200 and persists the event when verification passes" do
         allow_any_instance_of(SesDashboard::SnsSignatureVerifier).to receive(:verify!).and_return(true)
-        json_post(project.token, sns_notification("delivery"))
+        expect {
+          json_post(project.token, sns_notification("delivery", signed: true))
+        }.to change(SesDashboard::Email, :count).by(1)
         expect(response).to have_http_status(:ok)
       end
 
@@ -79,7 +135,7 @@ RSpec.describe SesDashboard::WebhooksController, type: :controller do
           .to receive(:verify!)
           .and_raise(SesDashboard::SnsSignatureVerifier::VerificationError, "bad signature")
 
-        json_post(project.token, sns_notification("delivery"))
+        json_post(project.token, sns_notification("delivery", signed: true))
         expect(response).to have_http_status(:forbidden)
       end
 
@@ -89,7 +145,7 @@ RSpec.describe SesDashboard::WebhooksController, type: :controller do
           .and_raise(SesDashboard::SnsSignatureVerifier::VerificationError, "bad signature")
 
         expect {
-          json_post(project.token, sns_notification("delivery"))
+          json_post(project.token, sns_notification("delivery", signed: true))
         }.not_to change(SesDashboard::Email, :count)
       end
 

@@ -1,6 +1,8 @@
+require_relative "lib/ses_dashboard/version"
+
 Gem::Specification.new do |spec|
   spec.name          = "ses-dashboard"
-  spec.version       = SesDashboard::VERSION rescue "0.1.0"
+  spec.version       = SesDashboard::VERSION
   spec.authors       = ["antodoms"]
   spec.email         = ["antodoms@outlook.com"]
 

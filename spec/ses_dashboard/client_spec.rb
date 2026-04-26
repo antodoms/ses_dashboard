@@ -53,4 +53,34 @@ RSpec.describe SesDashboard::Client do
       expect(response.verification_attributes).to include("user@example.com")
     end
   end
+
+  describe "#send_email" do
+    it "sends an email using the correct SES API parameters" do
+      ses = client.send(:ses_client)
+      ses.stub_responses(:send_email, message_id: "test-message-id")
+
+      response = client.send_email(
+        from: "sender@example.com",
+        to: "recipient@example.com",
+        subject: "Hello",
+        body: "Test body"
+      )
+
+      expect(response.message_id).to eq("test-message-id")
+    end
+
+    it "uses destination.to_addresses not destinations" do
+      ses = client.send(:ses_client)
+      sent_params = nil
+      ses.stub_responses(:send_email) do |context|
+        sent_params = context.params
+        { message_id: "msg-1" }
+      end
+
+      client.send_email(from: "a@example.com", to: "b@example.com", subject: "Hi", body: "Body")
+
+      expect(sent_params[:destination][:to_addresses]).to eq(["b@example.com"])
+      expect(sent_params).not_to have_key(:destinations)
+    end
+  end
 end

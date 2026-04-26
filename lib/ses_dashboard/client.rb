@@ -42,9 +42,9 @@ module SesDashboard
     # Options: from:, to:, subject:, body:, configuration_set: (optional)
     def send_email(from:, to:, subject:, body:, configuration_set: nil)
       params = {
-        source:       from,
-        destinations: [to],
-        message:      {
+        source:      from,
+        destination: { to_addresses: [to] },
+        message:     {
           subject: { data: subject, charset: "UTF-8" },
           body:    { text: { data: body, charset: "UTF-8" } }
         }

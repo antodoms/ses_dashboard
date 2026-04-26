@@ -86,15 +86,17 @@ graph TB
 Add the gem to your Gemfile:
 
 ```ruby
-gem "ses_dashboard"
+gem "ses-dashboard"
 ```
+
+The gem name uses a hyphen (`ses-dashboard`) — Bundler will auto-require the correct entry point automatically.
 
 Then run:
 
 ```bash
 bundle install
-rails ses_dashboard:install:migrations
-rails db:migrate
+bin/rails railties:install:migrations
+bin/rails db:migrate
 ```
 
 ## Mounting
@@ -130,8 +132,8 @@ SesDashboard.configure do |c|
   c.cloudflare_aud         = "your-application-aud"
 
   # Dashboard behaviour
-  c.per_page       = 25     # rows per page in the activity log
-  c.time_zone      = "UTC"  # timezone for chart date grouping
+  c.per_page        = 25     # rows per page in the activity log
+  c.time_zone       = "UTC"  # timezone for chart date grouping
   c.test_email_from = "noreply@example.com"
 
   # Caching & security
@@ -146,23 +148,54 @@ Every controller action (except the webhook endpoint) runs through the configure
 
 | Adapter | Value | Notes |
 |---|---|---|
-| None | `:none` | Open access -- suitable for development |
+| None | `:none` | Open access — suitable for development |
 | Devise | `:devise` | Calls `authenticate_user!` via Warden |
 | Cloudflare Zero Trust | `:cloudflare` | Validates `CF_Authorization` JWT against JWKS |
 | Custom | any object | Must respond to `#authenticate(request)` returning truthy/falsy |
 
+### Custom adapter
+
+Use a custom adapter when your app has its own authentication system (e.g. custom session-based auth, API keys, JWT):
+
 ```ruby
-# Example custom adapter
-class ApiKeyAuth
+# config/initializers/ses_dashboard.rb
+
+my_auth = Class.new(SesDashboard::Auth::Base) do
   def authenticate(request)
-    request.headers["X-Api-Key"] == Rails.application.credentials.dashboard_key
+    session = request.session
+    # your auth logic here — return truthy to allow, falsy to deny
+    session[:user_id].present?
   end
 end
 
 SesDashboard.configure do |c|
-  c.authentication_adapter = ApiKeyAuth.new
+  c.authentication_adapter = my_auth.new
 end
 ```
+
+For apps with session timeout and whitelist checks (e.g. custom Rails session auth):
+
+```ruby
+my_auth = Class.new(SesDashboard::Auth::Base) do
+  def authenticate(request)
+    session = request.session
+    user_id     = session[:user_id]
+    logged_in_at = session[:logged_in_at]
+
+    return false unless user_id && logged_in_at
+    return false unless logged_in_at > 12.hours.ago
+
+    user = User.find_by(id: user_id)
+    user&.active? || false
+  end
+end
+
+SesDashboard.configure do |c|
+  c.authentication_adapter = my_auth.new
+end
+```
+
+The adapter is defined inline using `Class.new` so it is available at initializer load time without depending on Zeitwerk autoloading.
 
 ## SNS Webhook Setup
 
@@ -191,6 +224,8 @@ The engine creates three tables (prefixed `ses_dashboard_`):
 | `ses_dashboard_email_events` | `email_id`, `event_type`, `event_data` (JSON), `occurred_at` |
 
 Email statuses: `sent`, `delivered`, `bounced`, `complained`, `rejected`, `failed`.
+
+Migrations are compatible with Rails 7.x and 8.x — the migration version is resolved automatically from the host app's Rails version at install time.
 
 ## Development
 
@@ -228,7 +263,7 @@ bundle exec rspec spec/models/ses_dashboard/email_spec.rb:15
 | Service | Purpose | Ports |
 |---|---|---|
 | `localstack` | Local AWS (SES + SNS) | 4566 |
-| `chrome` | Selenium standalone Chromium | 4444 (WebDriver), 7900 (noVNC -- watch tests live) |
+| `chrome` | Selenium standalone Chromium | 4444 (WebDriver), 7900 (noVNC — watch tests live) |
 | `web` | Runs the test suite | 4001 (Puma) |
 
 ### Watching System Tests

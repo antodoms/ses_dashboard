@@ -1,4 +1,10 @@
-class CreateSesDashboardProjects < ActiveRecord::Migration[8.0]
+_migration = begin
+  ActiveRecord::Migration["#{Rails::VERSION::MAJOR}.#{Rails::VERSION::MINOR}"]
+rescue ArgumentError
+  ActiveRecord::Migration["#{Rails::VERSION::MAJOR}.0"]
+end
+
+class CreateSesDashboardProjects < _migration
   def change
     create_table :ses_dashboard_projects do |t|
       t.string :name,        null: false

@@ -1,4 +1,10 @@
-class CreateSesDashboardEmails < ActiveRecord::Migration[8.0]
+_migration = begin
+  ActiveRecord::Migration["#{Rails::VERSION::MAJOR}.#{Rails::VERSION::MINOR}"]
+rescue ArgumentError
+  ActiveRecord::Migration["#{Rails::VERSION::MAJOR}.0"]
+end
+
+class CreateSesDashboardEmails < _migration
   def change
     create_table :ses_dashboard_emails do |t|
       t.references :project,    null: false, foreign_key: { to_table: :ses_dashboard_projects }

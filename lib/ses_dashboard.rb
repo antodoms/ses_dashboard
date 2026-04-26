@@ -62,5 +62,5 @@ module SesDashboard
     end
   end
 
-  autoload :Engine, "ses_dashboard/engine"
+  require "ses_dashboard/engine"
 end

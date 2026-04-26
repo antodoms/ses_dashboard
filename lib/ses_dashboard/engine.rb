@@ -13,13 +13,6 @@ module SesDashboard
       g.helper false
     end
 
-    # Make engine migrations available to the host app via `rails ses_dashboard:install:migrations`
-    initializer "ses_dashboard.add_migrations" do |app|
-      unless app.root.to_s == root.to_s
-        config.paths["db/migrate"].to_a.each { |path| app.config.paths["db/migrate"] << path }
-      end
-    end
-
     # Precompile engine assets
     initializer "ses_dashboard.assets" do |app|
       if app.config.respond_to?(:assets)

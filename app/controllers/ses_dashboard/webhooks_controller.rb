@@ -9,8 +9,8 @@ module SesDashboard
 
     def create
       project = Project.find_by!(token: params[:project_token])
-      body    = request.body.read
-
+      request.body.rewind
+      body   = request.body.read
       result = WebhookProcessor.new(body).process
 
       case result.action

@@ -89,6 +89,104 @@ RSpec.describe SesDashboard::WebhookProcessor do
       end
     end
 
+    context "SNS raw message delivery (no envelope)" do
+      # When a subscription has raw message delivery enabled, SNS posts the SES
+      # event JSON directly — no {"Type":"Notification","Message":"..."} wrapper.
+
+      it "processes a raw delivery event" do
+        body   = delivery_event.to_json
+        result = described_class.new(body).process
+
+        expect(result.action).to     eq(:process_event)
+        expect(result.event_type).to eq("delivery")
+        expect(result.message_id).to eq("msg-abc123")
+        expect(result.source).to     eq("sender@example.com")
+        expect(result.destination).to include("recipient@example.com")
+        expect(result.subject).to    eq("Hello")
+        expect(result.occurred_at).to be_a(Time)
+      end
+
+      it "processes a raw send event" do
+        raw = {
+          "eventType" => "Send",
+          "mail" => {
+            "messageId"   => "msg-raw-send",
+            "source"      => "sender@example.com",
+            "destination" => ["to@example.com"],
+            "timestamp"   => "2024-01-15T10:00:00Z"
+          }
+        }
+        result = described_class.new(raw.to_json).process
+
+        expect(result.action).to     eq(:process_event)
+        expect(result.event_type).to eq("send")
+        expect(result.message_id).to eq("msg-raw-send")
+      end
+
+      it "processes a raw bounce event" do
+        raw = {
+          "eventType" => "Bounce",
+          "mail" => {
+            "messageId"   => "msg-raw-bounce",
+            "source"      => "sender@example.com",
+            "destination" => ["bad@example.com"],
+            "timestamp"   => "2024-01-15T10:00:00Z"
+          }
+        }
+        result = described_class.new(raw.to_json).process
+
+        expect(result.action).to     eq(:process_event)
+        expect(result.event_type).to eq("bounce")
+      end
+
+      it "processes a raw open event" do
+        raw = {
+          "eventType" => "Open",
+          "mail" => {
+            "messageId"   => "msg-raw-open",
+            "source"      => "sender@example.com",
+            "destination" => ["to@example.com"],
+            "timestamp"   => "2024-01-15T10:00:00Z"
+          }
+        }
+        result = described_class.new(raw.to_json).process
+
+        expect(result.action).to     eq(:process_event)
+        expect(result.event_type).to eq("open")
+      end
+
+      it "falls back to mail timestamp when sns_timestamp is absent" do
+        raw = {
+          "eventType" => "Send",
+          "mail" => {
+            "messageId"   => "msg-ts",
+            "source"      => "a@b.com",
+            "destination" => ["c@d.com"],
+            "timestamp"   => "2024-06-01T12:00:00Z"
+          }
+        }
+        result = described_class.new(raw.to_json).process
+
+        expect(result.occurred_at).to eq(Time.parse("2024-06-01T12:00:00Z").utc)
+      end
+
+      %w[send delivery bounce complaint open click reject].each do |evt|
+        it "normalizes raw '#{evt}' event type without envelope" do
+          raw = {
+            "eventType" => evt.capitalize,
+            "mail" => {
+              "messageId"   => "id-raw-#{evt}",
+              "source"      => "a@b.com",
+              "destination" => ["c@d.com"],
+              "timestamp"   => "2024-01-01T00:00:00Z"
+            }
+          }
+          result = described_class.new(raw.to_json).process
+          expect(result.event_type).to eq(evt)
+        end
+      end
+    end
+
     context "malformed input" do
       it "returns :unknown for invalid JSON" do
         result = described_class.new("not-json").process

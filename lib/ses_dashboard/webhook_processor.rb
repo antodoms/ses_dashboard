@@ -42,7 +42,9 @@ module SesDashboard
       when "Notification"
         process_notification(sns)
       else
-        unknown_result
+        # SNS raw message delivery — the body is the SES event payload directly,
+        # with no SNS envelope. Treat it as a notification message directly.
+        process_raw_ses_event(sns)
       end
     rescue => e
       Rails.logger.error("[SesDashboard] WebhookProcessor error: #{e.message}") if defined?(Rails)
@@ -55,6 +57,16 @@ module SesDashboard
       message = parse_json(sns["Message"])
       return unknown_result unless message
 
+      process_ses_message(message, sns["Timestamp"])
+    end
+
+    # SNS raw message delivery — body is the SES event directly, no envelope.
+    def process_raw_ses_event(message)
+      process_ses_message(message, nil)
+    end
+
+    def process_ses_message(message, sns_timestamp)
+
       # SES supports two notification formats:
       # - Event Publishing (newer): uses "eventType" key
       # - Feedback Notifications (legacy): uses "notificationType" key
@@ -62,7 +74,7 @@ module SesDashboard
       event_type = normalize_event_type(raw_event_type)
 
       mail      = message["mail"] || {}
-      timestamp = parse_time(mail["timestamp"] || sns["Timestamp"])
+      timestamp = parse_time(mail["timestamp"] || sns_timestamp)
 
       Result.new(
         action:      :process_event,

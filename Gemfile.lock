@@ -129,7 +129,7 @@ GEM
     diff-lcs (1.6.2)
     docile (1.4.1)
     drb (2.2.3)
-    erb (6.0.2)
+    erb (6.0.4)
     erubi (1.13.1)
     factory_bot (6.5.6)
       activesupport (>= 6.1.0)
@@ -307,16 +307,17 @@ DEPENDENCIES
   bundler (>= 2.0)
   capybara
   database_cleaner-active_record
+  erb (>= 6.0.4)
   factory_bot_rails
   propshaft
   pry
   puma
   rack-test
-  rails
+  rails (>= 7.0)
   rails-controller-testing
   rake
   rspec
-  rspec-rails
+  rspec-rails (>= 6.0)
   selenium-webdriver
   ses-dashboard!
   simplecov

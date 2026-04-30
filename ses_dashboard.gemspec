@@ -11,7 +11,7 @@ Gem::Specification.new do |spec|
                        "tracking email delivery, bounces, complaints, opens, and clicks via SNS webhooks."
   spec.license       = "MIT"
   spec.homepage      = "https://github.com/antodoms/ses_dashboard"
-  spec.required_ruby_version = ">= 3.0"
+  spec.required_ruby_version = ">= 3.2"
 
   spec.metadata["homepage_uri"]    = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/antodoms/ses_dashboard"

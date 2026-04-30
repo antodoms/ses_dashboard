@@ -307,16 +307,17 @@ DEPENDENCIES
   bundler (>= 2.0)
   capybara
   database_cleaner-active_record
+  erb (>= 6.0.4)
   factory_bot_rails
   propshaft
   pry
   puma
   rack-test
-  rails (>= 7.0, >= 0)
+  rails (>= 7.0)
   rails-controller-testing
   rake
   rspec
-  rspec-rails (>= 6.0, >= 0)
+  rspec-rails (>= 6.0)
   selenium-webdriver
   ses-dashboard!
   simplecov
